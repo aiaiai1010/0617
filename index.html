@@ -57,9 +57,7 @@
     const ctx = canvas.getContext('2d');
 
     let pitch = null;
-    let dz = null;
 
-    // センサー取得処理
     function handleOrientation(event) {
       pitch = event.beta;
     }
@@ -70,7 +68,6 @@
       btn.style.display = 'none';
     }
 
-    // カメラ初期化（内カメラ指定）
     async function initCamera() {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "user" },
@@ -88,7 +85,6 @@
       });
     }
 
-    // MediaPipe FaceMesh 設定
     const faceMesh = new FaceMesh({
       locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`
     });
@@ -105,18 +101,16 @@
 
       if (results.multiFaceLandmarks.length > 0) {
         const landmarks = results.multiFaceLandmarks[0];
-        // 顎と鼻のZ座標差（前傾度）
         const noseZ = landmarks[1].z;
         const chinZ = landmarks[152].z;
         const dz = chinZ - noseZ;
-        // 顎と鼻のY座標差（うつむき度）
+
         const noseY = landmarks[1].y;
         const chinY = landmarks[152].y;
         const dy = chinY - noseY;
-        // 姿勢スコア（重みは調整可）
+
         const score = dz * 1.5 + dy * 1.0;
-        
-        // 判定ラベル
+
         let label = "";
         if (score > 0.06) {
           label = "⚠️ 姿勢注意：前傾が大きい";
@@ -125,20 +119,24 @@
         } else {
           label = "◎ 姿勢良好";
         }
+
         const pitchStr = pitch !== null ? `${pitch.toFixed(2)}°` : "未取得";
         const dzStr = dz.toFixed(4);
         const dyStr = dy.toFixed(4);
         const scoreStr = score.toFixed(4);
         output.textContent =
           `スマホPitch: ${pitchStr} / Z差: ${dzStr} / Y差: ${dyStr} / 姿勢スコア: ${scoreStr}\n${label}`;
-        // ランドマーク描画（そのまま）
+
         for (const pt of landmarks) {
           ctx.beginPath();
           ctx.arc(pt.x * canvas.width, pt.y * canvas.height, 2, 0, 2 * Math.PI);
           ctx.fillStyle = 'red';
           ctx.fill();
         }
+      } else {
+        output.textContent = "顔が検出されていません。";
       }
+    });
 
     async function setup() {
       if (
